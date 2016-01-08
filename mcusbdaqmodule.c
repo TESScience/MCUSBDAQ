@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "find_usb_daqs.h"
+#include "usb_daq.h"
 
 static PyObject*
 say_hello(PyObject* self, PyObject* args)
@@ -21,8 +21,23 @@ static PyMethodDef MCUSBDAQMethods[] =
      {NULL, NULL, 0, NULL}
 };
 
+#ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
+#define PyMODINIT_FUNC void
+#endif
 PyMODINIT_FUNC
 initmcusbdaq(void)
 {
-     (void) Py_InitModule("mcusbdaq", MCUSBDAQMethods);
+     PyObject* m;
+
+     if (PyType_Ready(&usb_daq_PyType) < 0)
+         return;
+
+     m = Py_InitModule3("mcusbdaq", MCUSBDAQMethods, "A module for handing Measurement Computer data acquisition cards");
+
+     if (m == NULL)
+         return;
+
+
+     Py_INCREF(&usb_daq_PyType);
+     PyModule_AddObject(m, "usb_daq", (PyObject *)&usb_daq_PyType);
 }

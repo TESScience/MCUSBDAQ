@@ -1,7 +1,7 @@
 from distutils.core import setup, Extension
 
 module1 = Extension('mcusbdaq', 
-		sources = ['mcusbdaqmodule.c', 'find_usb_daqs.c'],
+		sources = ['mcusbdaqmodule.c', 'usb_daq.c'],
 		libraries = ['usb'])
 
 setup (name = 'PackageName',
