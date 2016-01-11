@@ -1,69 +1,21 @@
 #include "usb_daq.h"
 #include <stdio.h>
 #include <structmember.h>
+#include <stdint.h>
 
-static PyMemberDef usb_daq_members[] = {
-    {"vendor_id", T_OBJECT_EX, offsetof(usb_daq, vendor_id), 0,
-     "Vendor identification number"},
-    {"product_id", T_OBJECT_EX, offsetof(usb_daq, product_id), 0,
-     "Product identification number"},
-    {"manufacturer", T_OBJECT_EX, offsetof(usb_daq, manufacturer), 0,
-     "Manufacturer name"},
-    {"product", T_OBJECT_EX, offsetof(usb_daq, product), 0,
-     "Product name"},
-    {"serial", T_OBJECT_EX, offsetof(usb_daq, serial), 0,
-     "Serial number"},
-    {NULL}  /* Sentinel */
-};
-
-static void usb_daq_dealloc(usb_daq* self) {
-    Py_XDECREF(self->manufacturer);
-    Py_XDECREF(self->product);
-    Py_XDECREF(self->serial);
-    Py_XDECREF(self->product_id);
-    Py_XDECREF(self->vendor_id);
-    self->ob_type->tp_free((PyObject*)self);
+static void inline cleanup_usb_dev_handle(usb_dev_handle *udev)
+{
+  if (udev) {
+    usb_clear_halt(udev, USB_ENDPOINT_IN|1);
+    usb_clear_halt(udev, USB_ENDPOINT_OUT|1);
+    usb_release_interface(udev, 0);
+    usb_close(udev);
+  }
 }
 
-static PyObject * usb_daq_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    usb_daq * self;
-    self = (usb_daq *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        self->product = PyString_FromString("");
-        if (self->product == NULL) {
-          Py_DECREF(self);
-          return NULL;
-        }
-        
-        self->manufacturer = PyString_FromString("");
-        if (self->manufacturer == NULL) {
-          Py_DECREF(self);
-          return NULL;
-        }
-
-        self->serial = PyString_FromString("");
-        if (self->serial == NULL) {
-          Py_DECREF(self);
-          return NULL;
-        }
-
-        self->product_id = PyInt_FromLong(0);
-        if (self->product_id == NULL) {
-          Py_DECREF(self);
-          return NULL;
-        }
-
-        self->vendor_id = PyInt_FromLong(0);
-        if (self->vendor_id == NULL) {
-          Py_DECREF(self);
-          return NULL;
-        }
-
-        self->dev = 0;
-    }
-    return (PyObject *)self;
-}
-
+// In order to enable "hot-swapping" of USB devices, 
+// we will in general only keep track of the serial number of the data acquisition card.
+// The USB device is then looked up every time we need to query the specified device
 static struct usb_device * find_usb_device_by_serial(const char * serial_number_to_search_for) {
     struct usb_bus *bus;
     struct usb_device *dev;
@@ -75,23 +27,133 @@ static struct usb_device * find_usb_device_by_serial(const char * serial_number_
     for (bus = usb_get_busses(); bus != NULL; bus = bus->next)
       for (dev = bus->devices; dev != NULL; dev = dev->next) {
          if (dev->descriptor.iSerialNumber) {
-           char this_serial_number[256] = {0x0};
+           char device_serial_number[256] = {0x0};
            usb_dev_handle *udev = usb_open(dev);
-           usb_get_string_simple(udev, dev->descriptor.iSerialNumber, this_serial_number, sizeof(this_serial_number)); 
-           usb_close(udev);
-           if (! strcmp(this_serial_number, serial_number_to_search_for) ) 
+           usb_get_string_simple(udev, dev->descriptor.iSerialNumber, device_serial_number, sizeof(device_serial_number)); 
+           cleanup_usb_dev_handle(udev);
+           if (! strcmp(device_serial_number, serial_number_to_search_for)) 
               return dev;
          }
        }
-	
     return NULL;
 }
+
+static PyObject * usb_daq_blink(const usb_daq *self, PyObject *args, PyObject *kwds)
+{
+  struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
+  uint8_t count = 5;
+  if (! dev ) {
+     // TODO: Raise exception
+     return NULL;
+  } else {
+     usb_dev_handle *udev = usb_open(dev);
+     const int hs_delay = 2000; /* ms */
+     uint8_t requesttype = (HOST_TO_DEVICE | VENDOR_TYPE | DEVICE_RECIPIENT);
+     usb_control_msg(udev, requesttype, BLINK_LED, 0x0, 0x0, (char *) &count, sizeof(count), hs_delay);
+     cleanup_usb_dev_handle(udev);
+  }
+  Py_RETURN_NONE;
+}
+
+static PyMethodDef usb_daq_methods[] = {
+    {"blink", (PyCFunction)usb_daq_blink, METH_NOARGS,
+     "Blink the USB DAQ's LED"
+    },
+    {NULL}  /* Sentinel */
+};
+
+// Getter for the vendor_id (an int) of a usb_daq object
+static PyObject * usb_daq_get_vendor_id(const usb_daq *self, const void *closure) {
+    const struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
+    if (! dev ) {
+       // TODO: raise exception
+       return NULL;
+    } else return PyInt_FromLong(dev->descriptor.idVendor);
+}
+
+// Getter for the product_id (an int) of a usb_daq object
+static PyObject * usb_daq_get_product_id(const usb_daq *self, const void *closure) {
+    const struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
+    if (! dev ) {
+       // TODO: raise exception
+       return NULL;
+    } else return PyInt_FromLong(dev->descriptor.idProduct);
+}
+
+// Getter for the manufacturer (string) of a usb_daq object
+static PyObject * usb_daq_get_manufacturer(const usb_daq *self, const void *closure) {
+    struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
+    if (! dev ) {
+       // TODO: raise exception
+       return NULL;
+    } else {
+       usb_dev_handle * udev = usb_open(dev);
+       char manufacturer[256] = {0x0};
+       usb_get_string_simple(udev, dev->descriptor.iManufacturer, manufacturer, sizeof(manufacturer)); 
+       return PyString_FromString(manufacturer);
+    }
+}
+
+// Getter for the product (string) of a usb_daq object
+static PyObject * usb_daq_get_product(const usb_daq *self, const void *closure) {
+    struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
+    if (! dev ) {
+       // TODO: raise exception
+       return NULL;
+    } else {
+       usb_dev_handle * udev = usb_open(dev);
+       char product[256] = {0x0};
+       usb_get_string_simple(udev, dev->descriptor.iProduct, product, sizeof(product)); 
+       return PyString_FromString(product);
+    }
+}
+
+// TODO: Setting these attributes should raise an exception
+static PyGetSetDef usb_daq_getseters[] = {
+    {"vendor_id", (getter)usb_daq_get_vendor_id, NULL /* No setter */,
+     "Vendor identification number",
+     NULL},
+    {"product_id", (getter)usb_daq_get_product_id, NULL /* No setter */,
+     "Product identification number",
+     NULL},
+    {"manufacturer", (getter)usb_daq_get_manufacturer, NULL /* No setter */,
+     "Manufacturer name",
+     NULL},
+    {"product", (getter)usb_daq_get_product, NULL /* No setter */,
+     "Product name",
+     NULL},
+    {NULL}  /* Sentinel */
+};
+
+
+static PyMemberDef usb_daq_members[] = {
+    {"serial", T_OBJECT_EX, offsetof(usb_daq, serial), 0, "Serial number"},
+    {NULL}  /* Sentinel */
+};
+
+static void usb_daq_dealloc(usb_daq* self) {
+    Py_XDECREF(self->serial);
+    self->ob_type->tp_free((PyObject*)self);
+}
+
+static PyObject * usb_daq_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    usb_daq * self;
+    self = (usb_daq *)type->tp_alloc(type, 0);
+    if (self != NULL) {
+        self->serial = PyString_FromString("");
+        if (self->serial == NULL) {
+          Py_DECREF(self);
+          return NULL;
+        }
+    }
+    return (PyObject *)self;
+}
+
 
 static int
 usb_daq_init(usb_daq *self, PyObject *args, PyObject *kwds)
 {
     PyObject *serial=NULL, *tmp;
-    usb_dev_handle *udev;
 
     static char *kwlist[] = {"serial", NULL};
 
@@ -104,38 +166,6 @@ usb_daq_init(usb_daq *self, PyObject *args, PyObject *kwds)
         self->serial = serial;
         Py_XDECREF(tmp);
     } else return -1;
-
-    if (! (self->dev = find_usb_device_by_serial(PyString_AsString(self->serial))))
-        return -1;
-
-    tmp = self->vendor_id;
-    self->vendor_id = PyInt_FromLong(self->dev->descriptor.idVendor);
-    Py_XDECREF(tmp);
-
-    tmp = self->product_id;
-    self->product_id = PyInt_FromLong(self->dev->descriptor.idProduct);
-    Py_XDECREF(tmp);
-
-    udev = usb_open(self->dev);
-
-    if (udev) {
-      if (self->dev->descriptor.iManufacturer) {
-        char manufacturer[256] = {0x0};
-        usb_get_string_simple(udev, self->dev->descriptor.iManufacturer, manufacturer, sizeof(manufacturer)); 
-        tmp = self->manufacturer;
-        self->manufacturer = PyString_FromString(manufacturer);
-        Py_XDECREF(tmp);
-      }
-      if (self->dev->descriptor.iProduct) {
-        char product[256] = {0x0};
-        usb_get_string_simple(udev, self->dev->descriptor.iProduct, product, sizeof(product)); 
-        tmp = self->product;
-        self->product = PyString_FromString(product);
-        Py_XDECREF(tmp);
-      }
-      usb_close(udev);
-    } else
-      return -1;
 
     return 0;
 }
@@ -169,10 +199,9 @@ PyTypeObject usb_daq_PyType = {
     0,		                                             /* tp_weaklistoffset */
     0,		                                             /* tp_iter */
     0,		                                             /* tp_iternext */
-    // TODO: Add Methods
-    0,                                                       /* tp_methods */
+    usb_daq_methods,                                         /* tp_methods */
     usb_daq_members,                                         /* tp_members */
-    0,                                                       /* tp_getset */
+    usb_daq_getseters,                                       /* tp_getset */
     0,                                                       /* tp_base */
     0,                                                       /* tp_dict */
     0,                                                       /* tp_descr_get */
@@ -188,13 +217,13 @@ static PyObject* usb_daq_obj_from_usb_device(struct usb_device * dev) {
     if (udev) {
       char serial_number[256] = {0x0};
       if (dev->descriptor.iSerialNumber) {
-        // TODO: Throw exception if this fails
+        // TODO: Raise exception if this fails
         usb_get_string_simple(udev, dev->descriptor.iSerialNumber, serial_number, sizeof(serial_number)); 
       }
       PyObject *argList = Py_BuildValue("(s)", serial_number);
       PyObject *obj = PyObject_CallObject((PyObject *) &usb_daq_PyType, argList);
       Py_DECREF(argList);
-      usb_close(udev);
+      cleanup_usb_dev_handle(udev);
       return obj;
     }
     Py_RETURN_NONE;
@@ -214,8 +243,7 @@ PyObject* find_usb_daqs(PyObject* self, PyObject* args) {
       for (dev = bus->devices; dev != NULL; dev = dev->next)
         if (dev->descriptor.idVendor == MCC_VID) {
           PyList_Append(results, usb_daq_obj_from_usb_device(dev));
-       }
+        }
 
     return results;
 }
-
