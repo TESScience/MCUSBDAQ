@@ -11,4 +11,4 @@ for d in mcusbdaq.find_usb_daqs():
 	print "Vendor ID:", d.vendor_id
 	print "Manufacturer:", d.manufacturer
 	print "Product Name:", d.product
-	d.blink()
+	d.blink(5)

@@ -41,24 +41,36 @@ static struct usb_device * find_usb_device_by_serial(const char * serial_number_
 static PyObject * usb_daq_blink(const usb_daq *self, PyObject *args, PyObject *kwds)
 {
   struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
-  uint8_t count = 5;
+  int count;
+  static char *kwlist[] = {"count", NULL};
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "|i", kwlist, &count)) {
+      // TODO: Raise exception
+      return NULL; 
+  }
+
+  if (! count ) {
+      // TODO: Raise exception
+      return NULL; 
+  }
+
   if (! dev ) {
      // TODO: Raise exception
      return NULL;
   } else {
      usb_dev_handle *udev = usb_open(dev);
-     const int hs_delay = 2000; /* ms */
-     uint8_t requesttype = (HOST_TO_DEVICE | VENDOR_TYPE | DEVICE_RECIPIENT);
-     usb_control_msg(udev, requesttype, BLINK_LED, 0x0, 0x0, (char *) &count, sizeof(count), hs_delay);
+     const uint8_t blink_code = BLINK_LED;
+     usb_interrupt_write(udev, USB_ENDPOINT_OUT | 1, (char *) &blink_code, sizeof(blink_code), HS_DELAY);
+     //const uint8_t requesttype = (HOST_TO_DEVICE | VENDOR_TYPE | DEVICE_RECIPIENT);
+     //usb_control_msg(udev, requesttype, BLINK_LED, 0x0, 0x0, (char *) &count, sizeof(count), HS_DELAY);
      cleanup_usb_dev_handle(udev);
   }
   Py_RETURN_NONE;
 }
 
 static PyMethodDef usb_daq_methods[] = {
-    {"blink", (PyCFunction)usb_daq_blink, METH_NOARGS,
-     "Blink the USB DAQ's LED"
-    },
+    {"blink", (PyCFunction)usb_daq_blink, (METH_VARARGS | METH_KEYWORDS),
+     "Blink the USB DAQ's LED"},
     {NULL}  /* Sentinel */
 };
 

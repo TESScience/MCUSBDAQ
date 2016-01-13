@@ -6,8 +6,11 @@
 #define HOST_TO_DEVICE (0x0 << 7)
 #define VENDOR_TYPE (0x2 << 5)
 #define DEVICE_RECIPIENT (0x0)
-// TODO: this code number has to change probably
-#define BLINK_LED (0x41)
+// TODO: this code number changes depending on the device
+#define BLINK_LED (0x40)
+
+// Why is this constant important?!?
+#define HS_DELAY 2000
 
 typedef struct {
     PyObject_HEAD
