@@ -1,3 +1,5 @@
+#ifndef USB_DAQ_C
+#define USB_DAQ_C
 #include "usb_daq.h"
 #include <stdio.h>
 #include <structmember.h>
@@ -38,12 +40,35 @@ static struct usb_device * find_usb_device_by_serial(const char * serial_number_
     return NULL;
 }
 
+// Cargo Culted from MCC's pmd.c ; see ftp://lx10.tx.ncsu.edu/pub/Linux/drivers/USB/
+int SendOutputReport(usb_dev_handle * dev_handle, const uint8_t reportID, const uint8_t * vals, int num_vals, int delay)
+{
+  int ret;
+
+  if (reportID == 0) { // use interrupt endpoint 1
+    ret = usb_interrupt_write(dev_handle, USB_ENDPOINT_OUT | 1, (char *) vals, num_vals, delay);
+    if (ret != num_vals) { // try one more time:
+      ret = usb_interrupt_write(dev_handle, USB_ENDPOINT_OUT | 1, (char *) vals, num_vals, delay);
+    }
+  } else { // use the control endpoint (Some FS devices use this)
+    ret = usb_control_msg(dev_handle,
+                          (USB_TYPE_CLASS| USB_RECIP_INTERFACE),
+                          SET_REPORT,
+                          (OUTPUT_REPORT | reportID),
+                          0,
+                          (char *) vals,
+                          num_vals,
+                          delay);
+  }
+  return ret;
+}
+
 static PyObject * usb_daq_blink(const usb_daq *self, PyObject *args, PyObject *kwds)
 {
   struct usb_device * dev = find_usb_device_by_serial(PyString_AsString(self->serial));
   int count;
   static char *kwlist[] = {"count", NULL};
-
+   
   if (! PyArg_ParseTupleAndKeywords(args, kwds, "|i", kwlist, &count)) {
       // TODO: Raise exception
       return NULL; 
@@ -54,16 +79,16 @@ static PyObject * usb_daq_blink(const usb_daq *self, PyObject *args, PyObject *k
       return NULL; 
   }
 
+
   if (! dev ) {
      // TODO: Raise exception
      return NULL;
   } else {
-     usb_dev_handle *udev = usb_open(dev);
+     usb_dev_handle * dev_handle = usb_open(dev);
      const uint8_t blink_code = BLINK_LED;
-     usb_interrupt_write(udev, USB_ENDPOINT_OUT | 1, (char *) &blink_code, sizeof(blink_code), HS_DELAY);
-     //const uint8_t requesttype = (HOST_TO_DEVICE | VENDOR_TYPE | DEVICE_RECIPIENT);
-     //usb_control_msg(udev, requesttype, BLINK_LED, 0x0, 0x0, (char *) &count, sizeof(count), HS_DELAY);
-     cleanup_usb_dev_handle(udev);
+     int ret = usb_interrupt_write(dev_handle, USB_ENDPOINT_OUT | 1, (char *) &blink_code, sizeof(blink_code), FS_DELAY);
+     fprintf(stderr, "Got return value: %i from blinking\n", ret);
+     cleanup_usb_dev_handle(dev_handle);
   }
   Py_RETURN_NONE;
 }
@@ -259,3 +284,4 @@ PyObject* find_usb_daqs(PyObject* self, PyObject* args) {
 
     return results;
 }
+#endif /* USB_DAQ_C */

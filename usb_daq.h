@@ -9,8 +9,22 @@
 // TODO: this code number changes depending on the device
 #define BLINK_LED (0x40)
 
-// Why is this constant important?!?
-#define HS_DELAY 2000
+// Measurement Computing Constants
+#define FS_DELAY 10000
+
+/* USB Request */
+enum {
+  GET_REPORT             = 1,
+  GET_IDLE               = 2,
+  GET_PROTOCOL           = 3,
+  SET_REPORT             = 9,
+  SET_IDLE               = 0x0A,
+  SET_PROTOCOL           = 0x0B
+};
+
+#define  INPUT_REPORT      (1 << 8)
+#define  OUTPUT_REPORT     (2 << 8)
+#define  FEATURE_REPORT    (3 << 8)
 
 typedef struct {
     PyObject_HEAD
