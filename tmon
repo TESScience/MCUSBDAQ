@@ -1,0 +1,77 @@
+#! /usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
+import tty
+import termios
+import sys
+import select
+import datetime
+import hid
+
+import mcc
+from mccusbtemp import *
+
+def kbhit(timeout):
+    rc = False
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        [i, o, e] = select.select([fd], [], [], timeout)
+        if i:
+            rc = True
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return rc
+
+
+def main():
+    try:
+#        info = hid.enumerate(VENDOR_ID, PRODUCT_ID)
+#        for cdev in info:
+#            print 'interface_number:   ', cdev['interface_number']
+#            print 'manufacturer_string:', cdev['manufacturer_string']
+#            print 'path:               ', cdev['path']
+#            print 'product_id:          0x%04x' % cdev['product_id']
+#            print 'product_string:     ', cdev['product_string']
+#            print 'release_number:     ', cdev['release_number']
+#            print 'serial_number:      ', cdev['serial_number']
+#            print 'usage:              ', cdev['usage']
+#            print 'usage_page:         ', cdev['usage_page']
+#            print 'vendor_id:           0x%04x'% cdev['vendor_id']
+#            print("\n")
+
+        usbtemp = mcc.usb_temp()
+
+        #usbtemp.calibrate()
+        usbtemp.dConfigPort(DIO_DIR_IN)
+
+        print("Press any key to exit program:\n")
+
+        start = CH0  # CJC0 # CH0
+        end =   CH0  # CJC1 # CH7
+        nchans = 1 + (end - start)
+
+        os = "Sample#, Sample Time"
+        for index in range(0, nchans):
+            os += ", Ch" + str(index)
+        print(os)
+
+        i = 0
+        timeout = 0
+        while not kbhit(timeout):
+            timeout = 2 # 1.988036
+            i = i + 1
+            os = ""
+            sample_time = datetime.datetime.now()
+            templist = usbtemp.tinScan(start, end)
+            for index in range(0, nchans):
+                if index != 0:
+                    os += ", "
+                os += str(templist[index])
+            print(str(i) + ", " + str(sample_time) + ", " + os)
+
+    except (KeyboardInterrupt):
+        pass
+
+if __name__=='__main__':
+    main()
