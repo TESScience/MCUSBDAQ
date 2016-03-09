@@ -17,6 +17,7 @@ import termios
 import sys
 import select
 import datetime
+import time
 import hid
 
 import mcc
@@ -53,7 +54,7 @@ def main():
         sample_number = 0
         timeout = 0
         while not kbhit(timeout):
-            sample_time = datetime.datetime.now()
+            sample_time = time.mktime(datetime.datetime.now().timetuple())
             templist = usbtemp.tinScan(start, end)
             sample_number = sample_number + 1
             os = ""
@@ -62,7 +63,7 @@ def main():
                     os += ", "
                 os += str(templist[index])
             print(str(sample_number) + ", " + str(sample_time) + ", " + os)
-            loop_time = datetime.datetime.now()
+            loop_time = time.mktime(datetime.datetime.now().timetuple())
             timeout = 2.0 - (loop_time - sample_time)
 
     except (KeyboardInterrupt):
