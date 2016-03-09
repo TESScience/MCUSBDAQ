@@ -18,7 +18,6 @@ import sys
 import select
 import datetime
 import time
-import hid
 
 import mcc
 from mccusbtemp import *
@@ -46,23 +45,22 @@ def main():
         end =   CH7  # CJC1 # CH7
         nchans = 1 + (end - start)
 
-        os = "Sample#, Sample Time"
-        for index in range(0, nchans):
-            os += ", Ch" + str(index)
-        print(os)
+        # Print the header
+        print("Sample#, Sample Time, {Channels}".format(
+            Channels=", ".join("Ch{}".format(i) for i in range(0, nchans))))
 
         sample_number = 0
         timeout = 0
         while not kbhit(timeout):
             sample_time = time.mktime(datetime.datetime.now().timetuple())
-            templist = usbtemp.tinScan(start, end)
-            sample_number = sample_number + 1
-            os = ""
-            for index in range(0, nchans):
-                if index != 0:
-                    os += ", "
-                os += str(templist[index])
-            print(str(sample_number) + ", " + str(sample_time) + ", " + os)
+            temperatures = usbtemp.tinScan(start, end)
+            sample_number += 1
+            # Print the sample data
+            print("{sample_number}, {sample_time}, {temps}".format(
+                sample_number=sample_number,
+                sample_time=sample_time,
+                temps=", ".join(map(str, temperatures))))
+
             loop_time = time.mktime(datetime.datetime.now().timetuple())
             timeout = 2.0 - (loop_time - sample_time)
 
