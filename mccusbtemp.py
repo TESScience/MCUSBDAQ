@@ -1,4 +1,24 @@
 # -*- mode: python; encoding: utf-8 -*-
+#
+#  Support module to drive Measurement Computings USB-TEMP temperature
+#  from a GNU/Linux environment.
+#
+#  This module was developed by:
+#    Rattlesnake Hill Technologies Inc. <chuck@rattlesnake-hill.com>
+#  for:
+#    The TESS project at the MIT Kalvi Institute for Astrophysics and
+#    Space Research 
+#
+#  The code is adapted from the GNU/Linux software available on the mccdaq
+#  website.
+#
+#    ftp://lx10.tx.ncsu.edu/pub/Linux/drivers/USB/
+#
+#  This code is licensed under the terms of the GPL Version 2.  See the
+#  file COPYING for a copy of the license or visit:
+#
+#    http://www.gnu.org/licenses/gpl-2.0.txt
+#
 
 VENDOR_ID   = 0x09db
 PRODUCT_ID  = 0x008d

@@ -1,0 +1,25 @@
+Before this module can be used, users need permission to access the HID device
+assigned to the USB-TEMP device.
+
+On a Debian GNU/Linux system, the file 99-mcc.rules can be placed into the 
+directory /etc/udev/rules.d
+
+# cp 99-mcc.rules /etc/udev/rules.d
+# chown root:root /etc/udev/rules.d/99-mcc.rules
+# chmod 644 /etc/udev/rules.d/99-mcc.rules
+# udevadm control --reload-rules
+
+For distributions other than Debian, the file 99-mcc.rules may need to be
+modified.  Specifically, on Lines 73 and 74, that reads:
+
+    # Enable non-root access to HID devices
+    KERNEL=="hiddev*", NAME="usb/hiddev%n", MODE="0666"
+
+The NAME must match the device name of the hiddev devices.  On some
+distributions the name will just be hiddev.
+
+    # Enable non-root access to HID devices
+    KERNEL=="hiddev*", NAME="hiddev%n", MODE="0666"
+
+WARNING: This rules file, as it currently exists, will enable all users to
+access all hid devices, including the keyboard and mouse.

@@ -1,14 +1,43 @@
 # -*- mode: python; encoding: utf-8 -*-
-
+#
+#  Support module to drive Measurement Computings USB-TEMP temperature
+#  from a GNU/Linux environment.
+#
+#  This module was developed by:
+#    Rattlesnake Hill Technologies Inc. <chuck@rattlesnake-hill.com>
+#  for:
+#    The TESS project at the MIT Kalvi Institute for Astrophysics and
+#    Space Research 
+#
+#  The code is adapted from the GNU/Linux software available on the mccdaq
+#  website.
+#
+#    ftp://lx10.tx.ncsu.edu/pub/Linux/drivers/USB/
+#
+#  This code is licensed under the terms of the GPL Version 2.  See the
+#  file COPYING for a copy of the license or visit:
+#
+#    http://www.gnu.org/licenses/gpl-2.0.txt
+#
 import struct
 import hid
 from mccusbtemp import *
 
-class usb_temp:
+class usb_temp(object):
     def __init__(self, serial_no = None):
         self.h = hid.device()
-        self.h.open(VENDOR_ID, PRODUCT_ID, serial_no)
-        #self.h.open_path("0002:0003:00")
+        if serial_no is None:
+            self.h.open(VENDOR_ID, PRODUCT_ID, serial_no)
+        else:
+            found = False
+            dev_list = hid.enumerate(VENDOR_ID, PRODUCT_ID)
+            for test_dev in dev_list:
+                if serial_no == test_dev['serial_number']:
+                    found = True
+                    self.h.open_path(test_dev['path'])
+                    break
+            if not found:
+                raise ValueError("Invalid serial number")
 
     def __del__(self):
         self.h.close()
@@ -20,7 +49,7 @@ class usb_temp:
     def _readData(self, report_id, length = 129, timeout = 500):
         try:
             d = self.h.read(length, timeout)
-        except IOError, ex:
+        except(IOError, ex):
             pass
         return d
 
@@ -86,7 +115,7 @@ class usb_temp:
         return result
 
     def tinScan(self, start, end, units = TEMPERATURE):
-        result = []
+        result = ()
         nchan = 1 + (end - start)
         self.h.write([TIN_SCAN, start, end, units, 0x0])
         d = self._readData(TIN_SCAN, 1 + (4 * nchan))
@@ -99,7 +128,7 @@ class usb_temp:
         return list(result)
 
     def readMemory(self, address, dtype, count):
-        memoty = []
+        memory = []
         if (count > 62) and (dtype == 0):
             count = 62
         if (count > 60) and (dtype == 1):
@@ -126,7 +155,7 @@ class usb_temp:
         if d:
             reportId = d[0]
             value    = d[1:]
-        self._waitWhileBusy()
+        return value
 
     def setItem(self, item, sub_item, value):
         if item > ADC_3:
