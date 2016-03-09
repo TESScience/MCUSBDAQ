@@ -77,8 +77,8 @@ CJC0 = 0x80  # Cold Junction Compensator 0
 CJC1 = 0x81  # Cold Junction Compensator 1
 
 # Units parameter
-TEMPERATURE = 0x00  #
-RAW         = 0x01  #
+TEMPERATURE_UNITS = 0x00  # Units to use when reading temperatures
+RAW_UNITS         = 0x01  # ???
 
 # Configuration Items
 ADC_0 = 0x0  # Setting for ADC 0
