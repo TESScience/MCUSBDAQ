@@ -34,16 +34,14 @@ def keyboard_hit(timeout):
 
 def main():
     import mcc
-    from mccusbtemp import CH0, CH7, DIO_DIR_IN
+    from mcc.mccusbtemp import DIO_DIR_IN
     import datetime
     import time
     try:
         usbtemp = mcc.usb_temp()
         usbtemp.dConfigPort(DIO_DIR_IN)
+        nchans = 8
         print("Press any key to exit program:\n")
-        start = CH0  # CJC0 # CH0
-        end = CH7  # CJC1 # CH7
-        nchans = 1 + (end - start)
 
         # Print the header
         print("Sample#, Sample Time, {Channels}".format(
@@ -53,7 +51,7 @@ def main():
         timeout = 0
         while not keyboard_hit(timeout):
             sample_time = time.mktime(datetime.datetime.now().timetuple())
-            temperatures = usbtemp.tinScan(start, end)
+            temperatures = usbtemp.tinScan()
             sample_number += 1
             # Print the sample data
             print("{sample_number}, {sample_time}, {temps}".format(
