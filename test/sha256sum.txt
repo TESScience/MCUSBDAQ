@@ -1,1 +1,0 @@
-8146a49e8a6d721782d3c60fa570d19821b49a1a96770dc65a29edc44cba9fc4  venv/src/hidapi-0.7.0.zip
