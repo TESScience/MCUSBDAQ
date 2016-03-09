@@ -3,7 +3,7 @@
 #
 #  A test script to drive the mcc support module
 #
-#  This module was developed by:
+#  This script was developed by:
 #    Rattlesnake Hill Technologies Inc. <chuck@rattlesnake-hill.com>
 #  for:
 #    The TESS project at the MIT Kalvi Institute for Astrophysics and
@@ -12,17 +12,13 @@
 #  The MIT Kalvi Institute for Astrophysics and Space Research has ownership
 #  of this code, and will establish the licensing terms.
 #
-import tty
-import termios
-import sys
-import select
-import datetime
-import time
 
-import mcc
-from mccusbtemp import *
 
-def kbhit(timeout):
+def keyboard_hit(timeout):
+    import tty
+    import termios
+    import sys
+    import select
     rc = False
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -37,12 +33,16 @@ def kbhit(timeout):
 
 
 def main():
+    import mcc
+    from mccusbtemp import CH0, CH7, DIO_DIR_IN
+    import datetime
+    import time
     try:
         usbtemp = mcc.usb_temp()
         usbtemp.dConfigPort(DIO_DIR_IN)
         print("Press any key to exit program:\n")
         start = CH0  # CJC0 # CH0
-        end =   CH7  # CJC1 # CH7
+        end = CH7  # CJC1 # CH7
         nchans = 1 + (end - start)
 
         # Print the header
@@ -51,7 +51,7 @@ def main():
 
         sample_number = 0
         timeout = 0
-        while not kbhit(timeout):
+        while not keyboard_hit(timeout):
             sample_time = time.mktime(datetime.datetime.now().timetuple())
             temperatures = usbtemp.tinScan(start, end)
             sample_number += 1
@@ -67,5 +67,6 @@ def main():
     except (KeyboardInterrupt):
         pass
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()
