@@ -92,7 +92,6 @@ class USBTemp(object):
         Set the digital port direction
         :param direction: either "IN" or "OUT"
         """
-        from mccusbtemp import DCONFIG
         assert direction in ["IN", "OUT"], \
             'Direction must be either "IN" or "OUT", was {}'.format(direction)
         dconfig = self.parameters["DCONFIG"]
@@ -256,26 +255,24 @@ class USBTemp(object):
         :param value: The value to set the item/sub-item pair to
         :return: ?
         """
-        from mccusbtemp import ADC_3, GET_ITEM
         low = 0
-        high = ADC_3
+        high = self.parameters["ADC_3"]
         # Shouldn't this be 'value' not 'item'?
-        if not 0 <= item <= high:
+        if not low <= item <= high:
             raise Exception("Could not set item {item} "
                             "(must be greater than or equal to {low} "
                             "and less than or equal to {high})".format(low=low, high=high))
-        return self._hid_device.write([GET_ITEM, item, sub_item])
+        return self._hid_device.write([self.parameters["GET_ITEM"], item, sub_item])
 
-    def get_burnout_status(self, mask):
+    def get_burnout_status(self):
         """
         Determine if a particular channel has a sensor attached
-        :param mask:
-        :return:
+        :return: An 8 bit integer where each bit represents whether the channel reports something attached
         """
         get_burnout_status = mccusbtemp.parameters["GET_BURNOUT_STATUS"]
         self._hid_device.write([get_burnout_status, 0, 0])
         d = self._read_data(get_burnout_status, 2)
-        return d[1] & mask if d else None
+        return d[1] if d else None
 
 
 def find_devices(vendor_id=mccusbtemp.parameters["VENDOR_ID"],
