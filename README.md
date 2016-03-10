@@ -9,17 +9,16 @@ http://www.mccdaq.com/usb-data-acquisition/USB-TEMP-Series.aspx
 For convenience, this package provides a *testsuite* which can be
 installed by typing at the prompt:
 
-```bash
-make install_testsuite
-```
+    make install_testsuite
 
-Alternatively, you can install this module with `pip`
+Alternatively, you can install this module with `pip`:
 
-```bash
-pip install git+https://github.com/TESScience/MCUSBDAQ.git
-```
+    pip install git+https://github.com/TESScience/MCUSBDAQ.git
 
-It is also necessary to place [99-mcc.rules](https://raw.githubusercontent.com/TESScience/MCUSBDAQ/master/99-mcc.rules) in `/etc/udev/rules.d` ; see [INSTALL](https://raw.githubusercontent.com/TESScience/MCUSBDAQ/master/INSTALL) for details.
+It is also necessary to place [99-mcc.rules][1] in `/etc/udev/rules.d` ; see [INSTALL][2] for details.
+
+[1]: https://raw.githubusercontent.com/TESScience/MCUSBDAQ/master/99-mcc.rules
+[2]: https://raw.githubusercontent.com/TESScience/MCUSBDAQ/master/INSTALL
 
 ## Usage
 
@@ -27,14 +26,12 @@ It is also necessary to place [99-mcc.rules](https://raw.githubusercontent.com/T
 
 To run the `temperature_monitor` script, type in this directory:
 
-```bash
-(make testsuite_install ;
- source testsuite/venv/bin/activate ;
- temperature_monitor)
-```
 
-Alternatively, if you installed this module via `pip` you can type:
+    (make testsuite_install ;
+     source testsuite/venv/bin/activate ;
+     temperature_monitor)
 
-```bash
-temperature_monitor
-```
+
+Alternatively, if you installed this module via `pip` you can just type:
+
+    temperature_monitor
