@@ -1,6 +1,5 @@
 import os
 from setuptools import setup
-from glob import glob
 
 
 def read(file_name):
@@ -26,6 +25,6 @@ setup(
         "Topic :: System :: Hardware :: Hardware Drivers",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
-    scripts=glob('scripts/*'),
+    scripts=['temperature_monitor'],
     requires=['hidapi']
 )

@@ -27,7 +27,7 @@ It is also necessary to place [99-mcc.rules][1] in `/etc/udev/rules.d` ; see [IN
 To run the `temperature_monitor` script, type in this directory:
 
 
-    (make testsuite_install ;
+    (make testsuite_reinstall ;
      source testsuite/venv/bin/activate ;
      temperature_monitor)
 
