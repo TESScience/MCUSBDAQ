@@ -11,60 +11,35 @@
 #
 #  The MIT Kalvi Institute for Astrophysics and Space Research has ownership
 #  of this code, and will establish the licensing terms.
-#
 
-
-def keyboard_hit(timeout):
-    import tty
-    import termios
-    import sys
-    import select
-    rc = False
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(sys.stdin.fileno())
-        [i, o, e] = select.select([fd], [], [], timeout)
-        if i:
-            rc = True
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return rc
-
-
-def main():
-    import mcc
-    from mcc.mccusbtemp import DIO_DIR_IN
-    import datetime
-    import time
-    try:
-        usbtemp = mcc.usb_temp()
-        usbtemp.dConfigPort(DIO_DIR_IN)
-        nchans = 8
-        print("Press any key to exit program:\n")
-
-        # Print the header
-        print("Sample#, Sample Time, {Channels}".format(
-            Channels=", ".join("Ch{}".format(i) for i in range(0, nchans))))
-
-        sample_number = 0
-        timeout = 0
-        while not keyboard_hit(timeout):
-            sample_time = time.mktime(datetime.datetime.now().timetuple())
-            temperatures = usbtemp.tinScan()
-            sample_number += 1
-            # Print the sample data
-            print("{sample_number}, {sample_time}, {temps}".format(
-                sample_number=sample_number,
-                sample_time=sample_time,
-                temps=", ".join(map(str, temperatures))))
-
-            loop_time = time.mktime(datetime.datetime.now().timetuple())
-            timeout = 2.0 - (loop_time - sample_time)
-
-    except (KeyboardInterrupt):
-        pass
-
+from __future__ import print_function
 
 if __name__ == '__main__':
-    main()
+    import mcc
+    import time
+    devices = mcc.find_devices()
+    number_of_channels = 8
+
+    for d in devices:
+        d.calibrate()
+
+    for d in devices:
+        d.blink()
+
+    # Print the header
+    print("Sample #, Serial #, Sample Time, {Channels}".format(
+        Channels=", ".join("Ch{}".format(i) for i in range(0, number_of_channels))))
+
+    sample_number = 0
+    while True:
+        sample_time = time.time() * 1000
+        sample_number += 1
+        for d in devices:
+            temperatures = d.scan_channel_temperatures()
+            # Print the sample data
+            print("{sample_number}, {serial_number}, {sample_time}, {temps}".format(
+                sample_number=sample_number,
+                serial_number=d.serial_number,
+                sample_time=sample_time,
+                temps=", ".join(map(str, temperatures))))
+        time.sleep(2)
