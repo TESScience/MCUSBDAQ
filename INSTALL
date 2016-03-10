@@ -1,7 +1,7 @@
 Before this module can be used, users need permission to access the HID device
 assigned to the USB-TEMP device.
 
-On a Debian GNU/Linux system, the file 99-mcc.rules can be placed into the 
+On a Debian GNU/Linux system, the file 99-mcc.rules can be placed into the
 directory /etc/udev/rules.d
 
 # cp -a 99-mcc.rules /etc/udev/rules.d/99-mcc.rules
@@ -23,7 +23,3 @@ distributions the name will just be hiddev.
 
 WARNING: This rules file, as it currently exists, will enable all users to
 access all hid devices, including the keyboard and mouse.
-
-To install all of the necessary dependencies in a virtual environment under the testsuite directory, type
-
-# make testsuite_reinstall

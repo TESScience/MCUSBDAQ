@@ -1,5 +1,0 @@
-This module runs the MCC USB-TEMP Temperature monitor.
-
-http://www.mccdaq.com/usb-data-acquisition/USB-TEMP-Series.aspx
-
-Adapting it to other USB driven MCC devices should be simple.
